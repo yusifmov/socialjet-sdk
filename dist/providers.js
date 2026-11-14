@@ -15,7 +15,12 @@ export function createAccountProvider(options) {
             const type = typeof accountOrType === 'string' ? accountOrType : accountOrType.type;
             return (type && options.accountTypes?.[type]) || options.defaultTypeText || options.title;
         },
-        supportsSetting: (account, setting) => setting.targets.includes(account.provider) || sharedSettings.includes(settingKey(setting)),
+        supportsSetting: (account, setting) => {
+            const byDefault = setting.targets.includes(account.provider) || sharedSettings.includes(settingKey(setting));
+            return options.supportsSetting
+                ? options.supportsSetting(account, setting, byDefault)
+                : byDefault;
+        },
         getPostTemplates: () => options.postTemplates ?? [],
     };
 }

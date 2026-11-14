@@ -3,7 +3,7 @@
   "version": "1.0.11",
   "description": "SDK for building SocialJet add-ons: registry types, API client, UI helpers, Vite preset and the `socialjet` CLI.",
   "type": "module",
-  "license": "GPL-2.0-or-later",
+  "license": "GPL-3.0-or-later",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/yusifmov/socialjet-sdk.git"

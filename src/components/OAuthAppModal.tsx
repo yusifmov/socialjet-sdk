@@ -1,4 +1,4 @@
-import {ReactNode, useState} from "react";
+import {ReactNode, useEffect, useState} from "react";
 import {Alert, Flex, Input, Modal, Switch, Typography} from "antd";
 import {useApi} from "../api.js";
 
@@ -50,11 +50,14 @@ export function OAuthAppModal(props: OAuthAppModalProps) {
 
     const missing = fields.filter(f => f.type !== 'switch' && !String(values[f.name] ?? '').trim());
 
-    const onOpenChange = (open: boolean) => {
-        if (open && props.callbackUrlEndpoint) {
-            callbackApi.sendRequest(props.callbackUrlEndpoint);
+    // Fetch on open (the dialog is often mounted already open, so afterOpenChange can't be relied on).
+    const {open, callbackUrlEndpoint} = props;
+    const fetchCallbackUrl = callbackApi.sendRequest;
+    useEffect(() => {
+        if (open && callbackUrlEndpoint) {
+            fetchCallbackUrl(callbackUrlEndpoint);
         }
-    };
+    }, [open, callbackUrlEndpoint, fetchCallbackUrl]);
 
     const authorize = async () => {
         const data = await loginUrlApi.sendRequest(props.loginUrlEndpoint, {
@@ -76,7 +79,6 @@ export function OAuthAppModal(props: OAuthAppModalProps) {
             open={props.open}
             onCancel={() => props.setOpen(false)}
             onOk={authorize}
-            afterOpenChange={onOpenChange}
             okText="Authorize"
             okButtonProps={{disabled: missing.length > 0, loading: loginUrlApi.loading}}
             destroyOnHidden

@@ -1,5 +1,5 @@
 import type { FC, ReactNode } from "react";
-import type { AccountProviderType, AuthModalPropsType, PostTemplateType } from "./types.js";
+import type { AccountProviderType, AccountType, AuthModalPropsType, PostTemplateType, SettingsItemType } from "./types.js";
 export interface CreateAccountProviderOptions {
     /** Must equal the provider slug used by the PHP add-on (`$account['provider']`). */
     slug: string;
@@ -17,6 +17,11 @@ export interface CreateAccountProviderOptions {
      */
     sharedSettings?: string[];
     postTemplates?: PostTemplateType[];
+    /**
+     * Override which settings an account gets. `supportsByDefault` is the result of
+     * the default rule (targets this provider, or listed in `sharedSettings`).
+     */
+    supportsSetting?: (account: AccountType, setting: SettingsItemType<unknown>, supportsByDefault: boolean) => boolean;
 }
 /**
  * Builds an `AccountProviderType` with the behaviour every network shares, so a

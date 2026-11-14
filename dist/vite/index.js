@@ -25,19 +25,37 @@ const sharedPackageRoots = new Set(sharedDeps.modules.map(m => m.id.startsWith('
  * would bundle a second copy.
  */
 export function socialjetSharedExternals() {
+    const WRAPPER = '\0socialjet-external:';
     return {
         name: 'socialjet:shared-externals',
         apply: 'build',
         enforce: 'pre',
-        resolveId(source) {
+        resolveId(source, importer) {
+            if (source.startsWith(SHARED_PREFIX)) {
+                return { id: source, external: true };
+            }
             if (sharedIds.has(source)) {
-                return { id: sharedModuleId(source), external: true };
+                // Not external directly: CommonJS dependencies (e.g. use-sync-external-store)
+                // `require('react')`, which ES module output can't do for an external. A tiny
+                // bundled ESM wrapper that re-exports the external works for import and require.
+                return WRAPPER + source;
             }
             const root = source.startsWith('@') ? source.split('/').slice(0, 2).join('/') : source.split('/')[0];
             if (sharedPackageRoots.has(root) && !source.startsWith('dayjs/')) {
-                this.error(`[socialjet] Import "${source}" bundles a private copy of a shared package. Import from "${root}" instead.`);
+                const message = `[socialjet] "${source}" bundles a private copy of a shared package. Import from "${root}" instead.`;
+                if (importer && !importer.includes('node_modules'))
+                    this.error(message);
+                this.warn(`${message} (imported by ${importer})`);
             }
             return null;
+        },
+        load(id) {
+            if (!id.startsWith(WRAPPER))
+                return null;
+            const pkg = id.slice(WRAPPER.length);
+            const target = JSON.stringify(sharedModuleId(pkg));
+            const mod = sharedDeps.modules.find(m => m.id === pkg);
+            return `export * from ${target};` + (mod?.cjs ? `\nexport {default} from ${target};` : '');
         },
     };
 }

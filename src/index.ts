@@ -2,7 +2,8 @@ export type * from "./types.js";
 
 export {sj, SDK_API_VERSION, createRegistry, installRegistry} from "./registry.js";
 export {apiFetch, useApi} from "./api.js";
-export {normalizeAccount, isAccountExpired} from "./accounts.js";
+export {normalizeAccount, isAccountExpired, notifyAccountsChanged, isAccountConnectResult} from "./accounts.js";
+export type {AccountConnectResult} from "./accounts.js";
 export {
     settingKey,
     defineSettingsItem,

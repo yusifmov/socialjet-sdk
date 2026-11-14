@@ -1,5 +1,5 @@
 import type {FC, ReactNode} from "react";
-import type {AccountProviderType, AccountType, AuthModalPropsType, PostTemplateType} from "./types.js";
+import type {AccountProviderType, AccountType, AuthModalPropsType, PostTemplateType, SettingsItemType} from "./types.js";
 import {POST_TEXT_SETTING_KEY, settingKey} from "./settings.js";
 
 export interface CreateAccountProviderOptions {
@@ -19,6 +19,11 @@ export interface CreateAccountProviderOptions {
      */
     sharedSettings?: string[]
     postTemplates?: PostTemplateType[]
+    /**
+     * Override which settings an account gets. `supportsByDefault` is the result of
+     * the default rule (targets this provider, or listed in `sharedSettings`).
+     */
+    supportsSetting?: (account: AccountType, setting: SettingsItemType<unknown>, supportsByDefault: boolean) => boolean
 }
 
 /**
@@ -38,8 +43,12 @@ export function createAccountProvider(options: CreateAccountProviderOptions): Ac
             const type = typeof accountOrType === 'string' ? accountOrType : accountOrType.type;
             return (type && options.accountTypes?.[type]) || options.defaultTypeText || options.title;
         },
-        supportsSetting: (account, setting) =>
-            setting.targets.includes(account.provider) || sharedSettings.includes(settingKey(setting)),
+        supportsSetting: (account, setting) => {
+            const byDefault = setting.targets.includes(account.provider) || sharedSettings.includes(settingKey(setting));
+            return options.supportsSetting
+                ? options.supportsSetting(account, setting as SettingsItemType<unknown>, byDefault)
+                : byDefault;
+        },
         getPostTemplates: () => options.postTemplates ?? [],
     };
 }

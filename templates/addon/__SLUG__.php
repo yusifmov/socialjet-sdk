@@ -6,7 +6,7 @@
  * Requires at least: 6.5
  * Requires PHP: 7.4
  * Requires Plugins: socialjet
- * License:     GPL-2.0-or-later
+ * License:     GPL-3.0-or-later
  * Text Domain: {{SLUG}}
  */
 
