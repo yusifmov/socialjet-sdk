@@ -1,0 +1,45 @@
+{
+  "$comment": "Single source of truth for what the SocialJet plugin provides at runtime. `npx socialjet update` copies these versions into an add-on's package.json; the frontend's shared-module build and the add-on preset read `modules`.",
+  "runtime": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "antd": "^5.29.3",
+    "dayjs": "^1.11.13"
+  },
+  "dev": {
+    "@ant-design/icons": "^5.5.1",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^5.1.1",
+    "typescript": "^5.9.3",
+    "vite": "8.0.5"
+  },
+  "modules": [
+    {
+      "id": "react",
+      "cjs": true
+    },
+    {
+      "id": "react-dom",
+      "cjs": true
+    },
+    {
+      "id": "react-dom/client",
+      "cjs": true
+    },
+    {
+      "id": "react/jsx-runtime",
+      "cjs": true
+    },
+    {
+      "id": "antd"
+    },
+    {
+      "id": "@ant-design/cssinjs"
+    },
+    {
+      "id": "dayjs",
+      "cjs": true
+    }
+  ]
+}

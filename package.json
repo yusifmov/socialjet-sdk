@@ -1,0 +1,63 @@
+{
+  "name": "@socialjet/sdk",
+  "version": "1.0.11",
+  "description": "SDK for building SocialJet add-ons: registry types, API client, UI helpers, Vite preset and the `socialjet` CLI.",
+  "type": "module",
+  "license": "GPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yusifmov/socialjet-sdk.git"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./vite": {
+      "types": "./dist/vite/index.d.ts",
+      "import": "./dist/vite/index.js"
+    },
+    "./shared-deps.json": "./shared-deps.json",
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "socialjet": "./bin/socialjet.mjs"
+  },
+  "files": [
+    "dist",
+    "bin",
+    "templates",
+    "shared-deps.json"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test:create": "node bin/socialjet.mjs create .tmp/demo-addon --sdk file:../.. --no-git"
+  },
+  "peerDependencies": {
+    "antd": "^5.29.3",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "vite": ">=6"
+  },
+  "peerDependenciesMeta": {
+    "vite": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "antd": "^5.29.3",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "typescript": "^5.9.3",
+    "vite": "8.0.5"
+  },
+  "socialjet": {
+    "repository": "yusifmov/socialjet-sdk"
+  }
+}
