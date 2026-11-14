@@ -1,0 +1,153 @@
+/**
+ * Vite helpers for SocialJet.
+ *
+ * The plugin serves React, antd, dayjs (see `shared-deps.json`) once, as WordPress
+ * script modules with the ids `@socialjet/shared/<package>`. The host app and every
+ * add-on import those instead of bundling their own copy — a second React copy
+ * breaks hooks, a second antd copy breaks theming.
+ */
+import {readFileSync, writeFileSync, mkdirSync} from "node:fs";
+import {createRequire} from "node:module";
+import path from "node:path";
+import {fileURLToPath} from "node:url";
+import type {Plugin, PluginOption, UserConfig} from "vite";
+
+interface SharedModule {
+    id: string
+    /** CommonJS package: named exports are generated from its runtime keys. */
+    cjs?: boolean
+}
+
+interface SharedDeps {
+    runtime: Record<string, string>
+    dev: Record<string, string>
+    modules: SharedModule[]
+}
+
+const sdkRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+
+export const sharedDeps: SharedDeps = JSON.parse(readFileSync(path.join(sdkRoot, 'shared-deps.json'), 'utf8'));
+
+export const SHARED_PREFIX = '@socialjet/shared/';
+
+/** `react-dom/client` -> `@socialjet/shared/react-dom/client` (the WordPress script module id). */
+export const sharedModuleId = (pkg: string) => SHARED_PREFIX + pkg;
+
+/** `@ant-design/cssinjs` -> `ant-design-cssinjs.js` (the file under `build/shared/`). */
+export const sharedModuleFile = (pkg: string) => pkg.replace(/^@/, '').replace(/\//g, '-') + '.js';
+
+const sharedIds = new Set(sharedDeps.modules.map(m => m.id));
+const sharedPackageRoots = new Set(sharedDeps.modules.map(m => m.id.startsWith('@') ? m.id.split('/').slice(0, 2).join('/') : m.id.split('/')[0]));
+
+/**
+ * Rewrites imports of shared packages to the `@socialjet/shared/*` script modules and
+ * keeps them out of the bundle. Deep imports (`antd/es/...`) are rejected because they
+ * would bundle a second copy.
+ */
+export function socialjetSharedExternals(): Plugin {
+    return {
+        name: 'socialjet:shared-externals',
+        apply: 'build',
+        enforce: 'pre',
+        resolveId(source) {
+            if (sharedIds.has(source)) {
+                return {id: sharedModuleId(source), external: true};
+            }
+            const root = source.startsWith('@') ? source.split('/').slice(0, 2).join('/') : source.split('/')[0];
+            if (sharedPackageRoots.has(root) && !source.startsWith('dayjs/')) {
+                this.error(`[socialjet] Import "${source}" bundles a private copy of a shared package. Import from "${root}" instead.`);
+            }
+            return null;
+        },
+    };
+}
+
+/** Vite config for a SocialJet add-on: one ES module per entry in `build/`, shared packages external. */
+export function defineAddonConfig(options: {
+    /** Entry points, e.g. `{ index: 'src/index.tsx' }`. Each becomes `build/<name>.js`. */
+    entries: Record<string, string>
+    outDir?: string
+    plugins?: PluginOption[]
+}): UserConfig {
+    return {
+        plugins: [socialjetSharedExternals(), ...(options.plugins ?? [])],
+        resolve: {dedupe: [...sharedPackageRoots]},
+        build: {
+            outDir: options.outDir ?? 'build',
+            emptyOutDir: true,
+            target: 'es2020',
+            rollupOptions: {
+                input: options.entries,
+                preserveEntrySignatures: 'exports-only',
+                output: {
+                    format: 'es',
+                    entryFileNames: '[name].js',
+                    chunkFileNames: 'chunks/[name]-[hash].js',
+                    assetFileNames: 'assets/[name]-[hash][extname]',
+                },
+            },
+        },
+    };
+}
+
+/**
+ * Vite config that builds the shared packages themselves into `<outDir>/shared/`,
+ * plus `modules.json` (`{ "<module id>": "<file>" }`) for the plugin to register.
+ * Used by the SocialJet frontend only. Run after the main build (it doesn't empty outDir).
+ */
+export function defineSharedModulesConfig(options: { root: string, outDir?: string }): UserConfig {
+    const outDir = path.resolve(options.root, options.outDir ?? 'build', 'shared');
+    const require = createRequire(path.join(options.root, 'package.json'));
+    const VIRTUAL = '\0socialjet-shared:';
+
+    const entryCode = (mod: SharedModule): string => {
+        if (!mod.cjs) {
+            return `export * from ${JSON.stringify(mod.id)};`;
+        }
+        // CommonJS can't be re-exported statically with `export *`; list its keys.
+        const keys = Object.keys(require(mod.id)).filter(k => k !== 'default' && /^[A-Za-z_$][\w$]*$/.test(k));
+        return [
+            `import m from ${JSON.stringify(mod.id)};`,
+            `export default m;`,
+            ...keys.map(k => `export const ${k} = m.${k};`),
+        ].join('\n');
+    };
+
+    const plugin: Plugin = {
+        name: 'socialjet:shared-modules',
+        resolveId(source) {
+            return source.startsWith(VIRTUAL) ? source : null;
+        },
+        load(id) {
+            if (!id.startsWith(VIRTUAL)) return null;
+            const mod = sharedDeps.modules.find(m => m.id === id.slice(VIRTUAL.length));
+            return mod ? entryCode(mod) : null;
+        },
+        closeBundle() {
+            mkdirSync(outDir, {recursive: true});
+            const manifest = Object.fromEntries(sharedDeps.modules.map(m => [sharedModuleId(m.id), sharedModuleFile(m.id)]));
+            writeFileSync(path.join(outDir, 'modules.json'), JSON.stringify(manifest, null, 2));
+        },
+    };
+
+    return {
+        root: options.root,
+        plugins: [plugin],
+        define: {'process.env.NODE_ENV': JSON.stringify('production')},
+        build: {
+            outDir,
+            emptyOutDir: true,
+            target: 'es2020',
+            minify: true,
+            rollupOptions: {
+                input: Object.fromEntries(sharedDeps.modules.map(m => [sharedModuleFile(m.id).replace(/\.js$/, ''), VIRTUAL + m.id])),
+                preserveEntrySignatures: 'strict',
+                output: {
+                    format: 'es',
+                    entryFileNames: '[name].js',
+                    chunkFileNames: 'chunks/[name]-[hash].js',
+                },
+            },
+        },
+    };
+}
