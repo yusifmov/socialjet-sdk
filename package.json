@@ -1,6 +1,6 @@
 {
   "name": "@socialjet/sdk",
-  "version": "1.0.11",
+  "version": "1.0.12",
   "description": "SDK for building SocialJet add-ons: registry types, API client, UI helpers, Vite preset and the `socialjet` CLI.",
   "type": "module",
   "license": "GPL-3.0-or-later",
