@@ -39,6 +39,7 @@ WordPress admin page (SocialJet)
 
 - **Shared packages.** These come from the plugin and are never bundled: `react`, `react-dom`, `react/jsx-runtime`, `antd`, `@ant-design/cssinjs` and `dayjs`. The Vite preset (`@socialjet/sdk/vite`) rewrites their imports to `@socialjet/shared/*`. Import them as usual (`import {Button} from 'antd'`). Never use deep imports such as `antd/es/...`, which the build rejects.
 - **One registry.** `sj` proxies to `window.SocialJet`. `register*` calls made before the host has loaded are queued and replayed.
+- **WordPress 5.0+.** Register your module only through the `socialjet_views` filter (as the template does), never with `wp_register_script_module` directly. SocialJet then loads it with WordPress's script modules on 6.5+ and with its own import-map fallback on older versions, so the add-on works wherever SocialJet does.
 
 ## API
 

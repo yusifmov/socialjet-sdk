@@ -3,7 +3,7 @@
  * Plugin Name: {{TITLE}}
  * Description: A SocialJet add-on.
  * Version:     0.1.0
- * Requires at least: 6.5
+ * Requires at least: 5.0
  * Requires PHP: 7.4
  * Requires Plugins: socialjet
  * License:     GPL-3.0-or-later
